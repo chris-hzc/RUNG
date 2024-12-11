@@ -31,17 +31,17 @@ from gb.attack.gd import proj_grad_descent, greedy_grad_descent
 from gb.metric import margin
 from gb.pert import edge_diff_matrix
 
-import optuna
+# import optuna
 import argparse
 
 path = ""
 
 parser = argparse.ArgumentParser(description='Train classification network')
 # model setting
-parser.add_argument('--model',type=str, default='GCN')
+parser.add_argument('--model',type=str, default='RUNG')
 parser.add_argument('--norm',type=str, default='MCP')
-parser.add_argument('--gamma',type=float, default=3.0)
-parser.add_argument('--data',type=str, default='squirrel')
+parser.add_argument('--gamma',type=float, default=6.0)
+parser.add_argument('--data',type=str, default='cora')
 
 args = parser.parse_args()
 if args.model == 'APPNP':

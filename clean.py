@@ -23,19 +23,17 @@ import time
 time_str = time.strftime('%Y-%m-%d-%H-%M')
 import argparse
 
-# tuning
-import optuna
 import os 
 
-path = ""
+path = "./"
 
 parser = argparse.ArgumentParser(description='Train classification network')
 
 # model setting
-parser.add_argument('--model',type=str, default='GCN')
+parser.add_argument('--model',type=str, default='RUNG')
 parser.add_argument('--norm',type=str, default='MCP')
-parser.add_argument('--gamma',type=float, default=3.0)
-parser.add_argument('--data',type=str, default='squirrel')
+parser.add_argument('--gamma',type=float, default=6.0)
+parser.add_argument('--data',type=str, default='cora')
 
 # fitting setting
 parser.add_argument('--lr',type=float, default=5e-2)

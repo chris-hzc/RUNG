@@ -7,13 +7,13 @@ import torch
 from scipy.sparse.csgraph import connected_components
 from scipy.stats import mode
 from sklearn.model_selection import train_test_split
-from torchtyping import TensorType, patch_typeguard
+from torchtyping import TensorType#, patch_typeguard
 from typeguard import typechecked
 
 from gb.typing import Int, Float
 from gb.util import FALLBACK_SRC_PATH
 
-patch_typeguard()
+# patch_typeguard()
 
 Dataset = Tuple[
     TensorType["nodes", "nodes", torch.float32, torch.strided],

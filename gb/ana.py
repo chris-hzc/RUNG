@@ -14,13 +14,13 @@ from matplotlib.colors import Colormap
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import FixedFormatter
 from munch import Munch
-from torchtyping import patch_typeguard
+# from torchtyping import patch_typeguard
 from typeguard import typechecked
 
 from gb.data import get_dataset, get_all_benchmark_targets, get_num_nodes_per_benchmark_target
 from gb.typing import Int, Float, FloatSeq
 
-patch_typeguard()
+# patch_typeguard()
 
 COLOR_CYCLE: List[str] = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
