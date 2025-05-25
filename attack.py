@@ -1,4 +1,3 @@
-
 # append path
 import sys
 
@@ -38,19 +37,18 @@ path = ""
 
 parser = argparse.ArgumentParser(description='Train classification network')
 # model setting
-parser.add_argument('--model',type=str, default='RUNG')
-parser.add_argument('--norm',type=str, default='MCP')
-parser.add_argument('--gamma',type=float, default=6.0)
-parser.add_argument('--data',type=str, default='cora')
+parser.add_argument('--model', type=str, default='RUNG')
+parser.add_argument('--norm', type=str, default='MCP')
+parser.add_argument('--gamma', type=float, default=6.0)
+parser.add_argument('--data', type=str, default='cora')
+parser.add_argument('--attack_type', type=str, default='global', choices=['global', 'local'])
+parser.add_argument('--budget', type=float, default=0)
 
 args = parser.parse_args()
 if args.model == 'APPNP':
     args.norm = 'L2'
 elif args.model == 'L1':
     args.norm = 'L1'
-
-
-#from my_exp.tuning_setting_files.every_budget_cora_global import tune_every_budget_mcp, tune_every_budget_softmedian, tune_every_budget_twirls
 
 def make_A_pert(A, flip):
     return A + edge_diff_matrix(flip, A)
@@ -113,8 +111,8 @@ def rep_global_evasion(
         A, X, y = A.cuda(), X.cuda(), y.cuda()
         #fit(model_cur_rep, A, X, y, train_idx, val_idx, **fit_params)
         
-        model_path = path+f'exp/models/{dataset_name}/{f"{args.model}_{args.norm}_{args.gamma}"}/0.000/split_0/rand_model_{i}/clean_model'
- 
+        model_path = f'/content/RUNG/log/{args.data}/clean/rand_model_{i}/clean_model'
+
         model_cur_rep.load_state_dict(torch.load(model_path))
         
         
@@ -159,12 +157,8 @@ def rep_transfer_evasion(dataset_name, trained_transfer_to_models, edge_flips, r
 '''Below: parameters {dataset_name, attack_method, budget} are accessed from outer frame'''
 def run_global_evasion_adaptive_exp(attack_configs, do_save_acc=True, do_save_flips=True, iter=200, init_model_name=None, **params):
 
-    global_evasion_pgd_attack_fpath = path + f"exp/result/{args.data}/global_evasion_pgd_adaptive_{args.model}_{args.gamma}_{int(budget_ratio * 100)}_percent.yaml"
-
+    global budget_ratio
     for model_name, custom_model_params, custom_fit_params in attack_configs:
-        print(f"Model:{model_name}")
-
-        cur_params = params
         cleans, accs,  edge_flips, models = rep_global_evasion(
             args.data,
             *get_model(
@@ -175,17 +169,12 @@ def run_global_evasion_adaptive_exp(attack_configs, do_save_acc=True, do_save_fl
             return_model=True, 
             seed=0, 
             iter=iter, 
-            init_As=load_rep_edge_flips(init_model_name, budget_ratio, attack_name, args.data) if init_model_name is not None else None, 
-            **cur_params
+            init_As=load_rep_edge_flips(init_model_name, budget_ratio, "global_evasion_PGD", args.data) if init_model_name is not None else None, 
+            **params
         )
-        print("Clean:",f"{np.mean(cleans)}±{np.std(cleans)}: {cleans}")
-        print("Attacked:",f"{np.mean(accs)}±{np.std(accs)}: {accs}")
-        if do_save_flips:
-            save_rep_edge_flips(model_name, budget_ratio, attack_name=attack_name, flip_ls=edge_flips, dataset_name=args.data)
-        # rep_save_model(model_name, budget_ratio, models)
-        if do_save_acc:
-            save_acc(cleans, accs, global_evasion_pgd_attack_fpath, model_name=model_name)
-
+        mean_acc = np.mean(accs) * 100  # as percentage
+        print(f"Mean Attacked Accuracy: {mean_acc:.2f}%")
+        return mean_acc
 
 def run_global_evasion_transfer_exp(transfer_from_models, transfer_to_models, do_save_acc=True):
 
@@ -233,6 +222,22 @@ def run_global_evasion_transfer_exp(transfer_from_models, transfer_to_models, do
                 print('Last exception message:', e)
 
 
+def run_local_evasion_exp(attack_configs, do_save_acc=True, do_save_flips=True, iter=200, **params):
+    for model_name, custom_model_params, custom_fit_params in attack_configs:
+        A, X, y = get_dataset(args.data)
+        sps = get_splits(y)
+        cleans = []
+        for i, (train_idx, val_idx, test_idx) in enumerate(sps):
+            model_cur_rep = copy.deepcopy(get_model(args.data, model_name, custom_model_params, custom_fit_params, as_paper=True)[0])
+            torch.manual_seed(0)
+            A_cuda, X_cuda, y_cuda = A.cuda(), X.cuda(), y.cuda()
+            # fit(model_cur_rep, A_cuda, X_cuda, y_cuda, train_idx, val_idx, **custom_fit_params)
+            clean = eval_evasion(model_cur_rep, A_cuda, X_cuda, y_cuda, test_idx)
+            cleans.append(clean)
+        mean_acc = np.mean(cleans) * 100  # as percentage
+        print(f"Mean Accuracy: {mean_acc:.2f}%")
+        return mean_acc
+
 if __name__ == '__main__':
     os.makedirs(path+f'log/{args.data}/attack', exist_ok=True)
     sys.stdout = open(path+f'log/{args.data}/attack/{args.model}_norm{args.norm}_gamma{args.gamma}.log', 'w', buffering=1)
@@ -240,9 +245,60 @@ if __name__ == '__main__':
     get_model = get_model_default
     attack_name = "global_evasion_PGD"
 
-    for budget_ratio in [0.05, 0.1, 0.2, 0.3, 0.4]:
-        print(f"Budget: {budget_ratio}")
-        model_params = {'gamma': args.gamma, 'norm': args.norm}
-        run_global_evasion_adaptive_exp([[args.model, model_params, {'max_epoch': 300}]])
-    
+    # Define your model names and budgets
+    model_names = [
+        "MLP", "GCN", "APPNP", "GAT", "GNNGuard", "RGCN", "GRAND", "ProGNN", "Jaccard-GCN",
+        "GARNET", "HANG", "NoisyGNN", "EvenNet", "GraphCON", "SoftMedian", "TWIRLS", "TWIRLS-T",
+        "RUNG-l1", "RUNG"
+    ]
+    budgets = [0, 0.2, 0.5, 1.0, 1.5, 2.0]  # or whatever budgets you want
+
+    # Initialize results dictionary
+    results = {model: {budget: None for budget in budgets} for model in model_names}
+
+    for model in model_names:
+        for budget in budgets:
+            model_params = {'gamma': args.gamma, 'norm': args.norm}
+            try:
+                if args.attack_type == 'global':
+                    acc = run_global_evasion_adaptive_exp([[model, model_params, {'max_epoch': 300}]])
+                else:
+                    acc = run_local_evasion_exp([[model, model_params, {'max_epoch': 300}]])
+                results[model][budget] = acc
+            except Exception as e:
+                print(f"Skipping {model} at budget {budget}: {e}")
+                results[model][budget] = None
+
+    import pickle
+    with open("results.pkl", "wb") as f:
+        pickle.dump(results, f)
+
+    header = "Model".ljust(15) + "".join([f"{int(b*100):>8}%" if b > 0 else f"{'Clean':>8}" for b in budgets])
+    print(header)
+    print("-" * len(header))
+    for model in model_names:
+        row = model.ljust(15)
+        for budget in budgets:
+            acc = results[model][budget]
+            if acc is not None:
+                row += f"{acc:8.2f}"
+            else:
+                row += f"{'   N/A':>8}"
+        print(row)
+
+    import csv
+    with open("results_table.csv", "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["Model"] + [f"{int(b*100)}%" if b > 0 else "Clean" for b in budgets])
+        for model in model_names:
+            row = [model] + [results[model][b] if results[model][b] is not None else "" for b in budgets]
+            writer.writerow(row)
+
+    print("\\begin{tabular}{l" + "c" * len(budgets) + "}")
+    print("Model & " + " & ".join([f"{int(b*100)}\\%" if b > 0 else "Clean" for b in budgets]) + " \\\\ \\hline")
+    for model in model_names:
+        row = [model] + [f"{results[model][b]:.2f}" if results[model][b] is not None else "--" for b in budgets]
+        print(" & ".join(row) + " \\\\")
+    print("\\end{tabular}")
+
     sys.stdout.close()
