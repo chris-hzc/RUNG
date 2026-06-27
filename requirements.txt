@@ -1,0 +1,20 @@
+torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
+torch-geometric
+torch-scatter
+torch-sparse
+torchtyping==0.1.4
+typeguard==2.13.3
+numpy
+scipy
+scikit-learn
+matplotlib
+tqdm
+PyYAML
+numba
+munch
+pymongo
+sacred
+seml
+threadpoolctl
+networkx

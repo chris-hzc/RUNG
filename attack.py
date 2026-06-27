@@ -40,7 +40,7 @@ parser = argparse.ArgumentParser(description='Train classification network')
 # model setting
 parser.add_argument('--model',type=str, default='RUNG')
 parser.add_argument('--norm',type=str, default='MCP')
-parser.add_argument('--gamma',type=float, default=6.0)
+parser.add_argument('--gamma',type=float, default=36.0)
 parser.add_argument('--data',type=str, default='cora')
 
 args = parser.parse_args()

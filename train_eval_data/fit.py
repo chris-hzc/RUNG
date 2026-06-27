@@ -39,8 +39,5 @@ def fit(model: torch.nn.Module, A, X, y, train_idx, val_idx, **kwargs):
         loss.backward()
         optimizer.step()
 
-        if i % 10 == 0:
-            model.eval()
-            print(accuracy(model(A, X)[val_idx], y[val_idx]))
         
 

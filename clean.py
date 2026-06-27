@@ -20,10 +20,11 @@ import torch
 from torch import nn
 import numpy as np
 import time
+import logging
 time_str = time.strftime('%Y-%m-%d-%H-%M')
 import argparse
 
-import os 
+import os
 
 path = "./"
 
@@ -32,7 +33,7 @@ parser = argparse.ArgumentParser(description='Train classification network')
 # model setting
 parser.add_argument('--model',type=str, default='RUNG')
 parser.add_argument('--norm',type=str, default='MCP')
-parser.add_argument('--gamma',type=float, default=6.0)
+parser.add_argument('--gamma',type=float, default=36.0)
 parser.add_argument('--data',type=str, default='cora')
 
 # fitting setting
@@ -47,57 +48,70 @@ elif args.model == 'L1':
     args.norm = 'L1'
 
 
-def clean_rep(model, train_param, dataset_name, seed=None):
+def clean_rep(model, train_param, dataset_name, seed, split_total):
     A, X, y = get_dataset(dataset_name)
     sp = get_splits(y)
 
     acc, models = [], []
-    for train_idx, val_idx, test_idx in sp:
+    for split_idx, (train_idx, val_idx, test_idx) in enumerate(sp, 1):
         cur_model = copy.deepcopy(model)
-        torch.manual_seed(seed if seed is not None else 0)
-        if args.model in  ['GCN','GAT']:
+        torch.manual_seed(seed)
+        t0 = time.time()
+        if args.model in ['GCN', 'GAT']:
             cur_model.fit((A, X), y, train_idx, val_idx, progress=False, **train_param)
         elif args.model == 'RUNG':
             fit(cur_model, A, X, y, train_idx, val_idx, **train_param)
-        
+
         cur_model.eval()
-        acc.append(accuracy(cur_model(A, X)[test_idx, :], y[test_idx]).cpu().item())
-        print("Acc:",acc)
+        test_acc = accuracy(cur_model(A, X)[test_idx, :], y[test_idx]).cpu().item()
+        acc.append(test_acc)
+        elapsed = time.time() - t0
+        logging.info(f"  seed={seed}  split={split_idx}/{split_total}  "
+                     f"test_acc={test_acc:.4f}  time={elapsed:.1f}s")
         models.append(cur_model)
     return acc, models
 
 
 def make_clean_model_and_save(do_save_model=False, do_save_acc=False, rep_num=5, model_name_arg=None):
     clean_result_fname = path + f"exp/result/{args.data}/clean_{args.model}_{args.gamma}.yaml"
-    
-    # get model name
-    
-    model_ls = [
-        [args.model, {'gamma': args.gamma, 'norm': args.norm}, {'lr':args.lr, 'weight_decay':args.weight_decay,'max_epoch': args.max_epoch}], 
-    ]
-    
 
-    
+    model_ls = [
+        [args.model, {'gamma': args.gamma, 'norm': args.norm},
+         {'lr': args.lr, 'weight_decay': args.weight_decay, 'max_epoch': args.max_epoch}],
+    ]
+
     for model_name, model_config, fit_config in model_ls if model_name_arg is None else model_name_arg:
+        sep = "=" * 60
+        logging.info(sep)
+        logging.info(f"  Model   : {model_name}  norm={args.norm}  gamma={args.gamma}")
+        logging.info(f"  Dataset : {args.data}")
+        logging.info(f"  LR={args.lr}  WD={args.weight_decay}  Epochs={args.max_epoch}  Seeds={rep_num}")
+        logging.info(sep)
+
         acc, models = [], []
+        num_splits = None
         for seed in range(rep_num):
             a, m = clean_rep(
                 *get_model(
                     args.data,
-                    model_name, 
-                    custom_model_params=model_config, 
-                    custom_fit_params=fit_config, 
+                    model_name,
+                    custom_model_params=model_config,
+                    custom_fit_params=fit_config,
                     seed=seed
-                ), 
-                args.data, 
-                seed=seed, 
+                ),
+                args.data,
+                seed=seed,
+                split_total=5,
             )
             acc += a
             models.append(m)
-        
+
         models = [m[i] for i in range(len(models[0])) for m in models]
 
-        print(f'model {model_name} done, clean acc: {np.mean(acc)}±{np.std(acc)}')
+        logging.info(sep)
+        logging.info(f"  Result  : {np.mean(acc)*100:.2f}% ± {np.std(acc)*100:.2f}%  "
+                     f"(over {len(acc)} eval runs)")
+        logging.info(sep)
 
         if do_save_acc:
             save_acc(acc, acc, clean_result_fname, model_name=model_name)
@@ -109,15 +123,22 @@ def make_clean_model_and_save(do_save_model=False, do_save_acc=False, rep_num=5,
 
 
 if __name__ == '__main__':
+    log_dir = path + f'log/{args.data}/clean'
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = f"{log_dir}/{args.data}_{args.model}_{args.norm}_g{args.gamma}_{time_str}.log"
 
-    os.makedirs(path+f'log/{args.data}/clean', exist_ok=True)
-    sys.stdout = open(path+f'log/{args.data}/clean/{args.model}_{args.norm}_{args.gamma}.log', 'w', buffering=1)
-    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[
+            logging.FileHandler(log_path, mode='w'),
+            logging.StreamHandler(sys.stdout),
+        ]
+    )
 
     get_model = get_model_default
     make_clean_model_and_save(do_save_acc=True, do_save_model=True, rep_num=1, model_name_arg=None)
-    
-    sys.stdout.close()
 
 
 
