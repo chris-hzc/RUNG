@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper below."
+title: "RUNG: Robust Graph Neural Networks via Unbiased Aggregation"
+repository-code: "https://github.com/chris-hzc/RUNG"
+authors:
+  - family-names: Hou
+    given-names: Zhichao
+  - family-names: Feng
+    given-names: Ruiqi
+  - family-names: Derr
+    given-names: Tyler
+  - family-names: Liu
+    given-names: Xiaorui
+preferred-citation:
+  type: conference-paper
+  title: "Robust Graph Neural Networks via Unbiased Aggregation"
+  authors:
+    - family-names: Hou
+      given-names: Zhichao
+    - family-names: Feng
+      given-names: Ruiqi
+    - family-names: Derr
+      given-names: Tyler
+    - family-names: Liu
+      given-names: Xiaorui
+  collection-title: "Advances in Neural Information Processing Systems (NeurIPS)"
+  year: 2024
+  url: "https://arxiv.org/abs/2311.14934"

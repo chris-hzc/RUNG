@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RUNG Project Page</title>
+<meta name="description" content="RUNG: Robust Graph Neural Networks via Unbiased Aggregation (NeurIPS 2024). Interactive demos of the estimation bias of l1 graph smoothing and how RUNG's unbiased aggregation prunes adversarial edges.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Schibsted+Grotesk:wght@500;700;800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+/* Layout: one reading column (68ch prose) with full-width "instrument" panels for the demos;
+   each demo = plot on the left, controls + readouts on the right, stacking below 820px. */
+:root{
+  --bg:#f4f5f8; --surface:#ffffff; --sunk:#eceef3; --ink:#141922; --muted:#5a6375; --line:#dce0e8;
+  --accent:#6741d9; --accent-soft:#ece6fd; --on-accent:#ffffff;
+  --l2:#2b8a3e; --l1:#d9480f; --rung:#6741d9;
+  --atk:#e03131; --ca:#3b5bdb; --cb:#0b7285; --fig:#ffffff;
+  --display:"Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body:"Literata", Georgia, "Times New Roman", serif;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1117; --surface:#161a22; --sunk:#1d222c; --ink:#e6e9ef; --muted:#9aa3b4; --line:#2a303c;
+  --accent:#9775fa; --accent-soft:#2a2346; --on-accent:#0e1117;
+  --l2:#51cf66; --l1:#ff8a4c; --rung:#9775fa;
+  --atk:#ff6b6b; --ca:#748ffc; --cb:#3bc9db; --fig:#f4f5f8; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0e1117; --surface:#161a22; --sunk:#1d222c; --ink:#e6e9ef; --muted:#9aa3b4; --line:#2a303c;
+  --accent:#9775fa; --accent-soft:#2a2346; --on-accent:#0e1117;
+  --l2:#51cf66; --l1:#ff8a4c; --rung:#9775fa;
+  --atk:#ff6b6b; --ca:#748ffc; --cb:#3bc9db; --fig:#f4f5f8; color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px}
+a{color:var(--accent);text-underline-offset:3px}
+h1,h2,h3{font-family:var(--display);line-height:1.12;text-wrap:balance;margin:0}
+h2{font-size:clamp(1.6rem,3.2vw,2.15rem);font-weight:800;letter-spacing:-.015em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+.prose{max-width:68ch;display:grid;grid-template-columns:minmax(0,1fr);gap:1em;min-width:0}
+.eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono)}
+code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:10px}
+.brand{font-family:var(--display);font-weight:800;font-size:1.1rem;letter-spacing:.02em;color:var(--ink);text-decoration:none}
+.brand span{color:var(--accent)}
+.bar nav{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--display);font-size:.92rem}
+.bar nav a{color:var(--muted);text-decoration:none}
+.bar nav a:hover{color:var(--ink)}
+@media (max-width:640px){.bar nav{display:none}}
+
+/* hero */
+.hero{padding-block:64px 40px;display:grid;grid-template-columns:minmax(0,1fr);gap:28px}
+.hero h1{font-size:clamp(2.2rem,5.6vw,4.1rem);font-weight:800;letter-spacing:-.03em;max-width:17ch}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.authors{font-family:var(--display);font-size:1.08rem;display:flex;flex-wrap:wrap;gap:4px 22px}
+.authors sup{color:var(--muted);font-size:.7em}
+.affil{color:var(--muted);font-size:.95rem}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;font-size:.95rem;padding:10px 16px;border-radius:999px;border:1.5px solid var(--ink);color:var(--ink);text-decoration:none;background:transparent}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary:hover{background:var(--accent);color:var(--on-accent)}
+.tldr{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;align-items:start;padding-top:12px;border-top:1px solid var(--line)}
+.tldr .prose{padding-top:20px}
+.lead{font-size:1.18rem;line-height:1.55}
+@media (max-width:860px){.tldr{grid-template-columns:1fr;gap:16px}}
+
+/* headline bar chart */
+.headline{padding-top:20px;display:grid;gap:10px}
+.hbars{display:grid;gap:6px;font-family:var(--display);font-size:.9rem}
+.hbar{display:grid;grid-template-columns:7.2em minmax(0,1fr) 3.4em;align-items:center;gap:10px}
+.hbar .track{height:14px;background:var(--sunk);border-radius:3px;position:relative;overflow:hidden}
+.hbar .fill{position:absolute;inset:0 auto 0 0;background:var(--muted);opacity:.55;border-radius:3px}
+.hbar.ours .fill{background:var(--rung);opacity:1}
+.hbar.ours{font-weight:700}
+.hbar.ref .fill{background:none;border:1.5px dashed var(--muted);opacity:1}
+.hbar .v{font-family:var(--mono);font-size:.82rem;text-align:right;font-variant-numeric:tabular-nums}
+.note{font-size:.82rem;color:var(--muted);font-family:var(--display)}
+
+/* sections */
+section.chapter{padding-block:56px;border-top:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr);gap:28px}
+.chapter-head{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-width:0}
+.figure{background:var(--fig);border-radius:var(--r);padding:16px;border:1px solid var(--line)}
+.figure img{display:block;width:100%;height:auto}
+figcaption{font-size:.9rem;color:var(--muted);margin-top:10px;max-width:80ch}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:1fr;gap:24px}}
+
+/* unified view table */
+.uv{width:100%;border-collapse:collapse;font-size:.95rem}
+.uv th,.uv td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.uv th{font-family:var(--display);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.uv td:first-child{font-family:var(--display);font-weight:700;white-space:nowrap}
+.scroll{overflow-x:auto}
+
+/* demo panel */
+.demo{background:var(--surface);border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr)}
+.demo .plot{padding:18px;border-right:1px solid var(--line);min-width:0}
+.demo .side{padding:20px;display:grid;gap:20px;align-content:start;min-width:0}
+@media (max-width:820px){.demo{grid-template-columns:1fr}.demo .plot{border-right:0;border-bottom:1px solid var(--line)}}
+.demo-tag{display:flex;align-items:baseline;gap:10px}
+.demo-tag b{font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+canvas{display:block;width:100%;touch-action:none}
+.ctl{display:grid;gap:8px}
+.ctl label,.ctl .lab{font-family:var(--display);font-weight:700;font-size:.85rem;display:flex;justify-content:space-between;gap:10px}
+.ctl output,.ctl .val{font-family:var(--mono);font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:flex;flex-wrap:wrap;gap:0;border:1.5px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{flex:1 1 auto;font:600 .82rem var(--display);padding:7px 8px;border:0;background:transparent;color:var(--muted);cursor:pointer;border-right:1px solid var(--line);min-width:0}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button:hover:not([aria-pressed="true"]){color:var(--ink);background:var(--sunk)}
+.sbtn{font:700 .85rem var(--display);padding:8px 14px;border-radius:8px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+.sbtn:hover{border-color:var(--accent);color:var(--accent)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--display);font-size:.82rem;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:6px}
+.legend i.sq{border-radius:2px}
+.legend i.line{width:18px;height:0;border-top:2px solid;border-radius:0;vertical-align:3px}
+.legend i.dash{width:18px;height:0;border-top:2px dashed;border-radius:0;vertical-align:3px}
+.stats{display:grid;gap:10px}
+.stat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:baseline;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.stat:last-child{border-bottom:0;padding-bottom:0}
+.stat .k{font-family:var(--display);font-size:.85rem;color:var(--muted)}
+.stat .v{font-family:var(--mono);font-size:1.1rem;font-weight:600;font-variant-numeric:tabular-nums}
+.stat .bar2{grid-column:1/-1;height:6px;background:var(--sunk);border-radius:3px;overflow:hidden}
+.stat .bar2 span{display:block;height:100%;border-radius:3px}
+.state-pill{display:inline-block;font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+.state-pill.ok{background:color-mix(in srgb,var(--l2) 18%,transparent);color:var(--l2)}
+.state-pill.bad{background:color-mix(in srgb,var(--atk) 18%,transparent);color:var(--atk)}
+.err{display:grid;grid-template-columns:5.6em minmax(0,1fr) 3.4em;gap:10px;align-items:center;font-family:var(--display);font-size:.88rem}
+.err .track{height:10px;background:var(--sunk);border-radius:3px;overflow:hidden}
+.err .track span{display:block;height:100%}
+.err .n{font-family:var(--mono);font-size:.82rem;text-align:right;font-variant-numeric:tabular-nums}
+.small{font-size:.86rem;color:var(--muted);font-family:var(--display);line-height:1.45}
+
+/* equations */
+.eq{max-width:100%;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;overflow-x:auto;font-size:1.06rem}
+.eq math{font-size:1.12em}
+.eq .lbl{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:10px}
+.tex-fallback{font-family:var(--mono);font-size:.85rem;white-space:pre-wrap}
+
+/* penalty plots */
+.plots{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:520px){.plots{grid-template-columns:1fr}}
+.plots svg{width:100%;height:auto;display:block}
+.plots .t{font-family:var(--display);font-weight:700;font-size:.85rem;margin-bottom:4px}
+
+/* summary chart */
+.summary svg{width:100%;height:auto;display:block}
+
+/* results */
+.res{width:100%;border-collapse:collapse;font-size:.92rem;font-variant-numeric:tabular-nums}
+.res th,.res td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.res th:first-child,.res td:first-child{text-align:left;font-family:var(--display)}
+.res thead th{font-family:var(--display);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.res td{font-family:var(--mono);font-size:.84rem}
+.res tr.ours td{background:var(--accent-soft)}
+.res tr.ours td:first-child{font-weight:700}
+.res tr.sep td{border-top:2px solid var(--line)}
+.res b{color:var(--accent)}
+
+/* bibtex */
+.bib{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.bib pre{margin:0;padding:18px 20px;overflow-x:auto;font:400 .85rem/1.6 var(--mono)}
+.bib .sbtn{position:absolute;top:10px;right:10px;background:var(--surface)}
+footer{padding-block:40px;border-top:1px solid var(--line);color:var(--muted);font-size:.88rem;font-family:var(--display)}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top">RUNG<span>.</span></a>
+    <nav aria-label="Sections">
+      <a href="#problem">Problem</a>
+      <a href="#bias">Bias</a>
+      <a href="#penalty">Penalty</a>
+      <a href="#layer">RUNG layer</a>
+      <a href="#results">Results</a>
+      <a href="#cite">Cite</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+  <section class="hero">
+    <div class="eyebrow">NeurIPS 2024 · Graph Learning · Adversarial Robustness</div>
+    <h1>Robust Graph Neural Networks via <em>Unbiased</em> Aggregation</h1>
+    <div style="display:grid;gap:6px">
+      <div class="authors">
+        <span>Zhichao Hou<sup>1*</sup></span>
+        <span>Ruiqi Feng<sup>1*</sup></span>
+        <span>Tyler Derr<sup>2</sup></span>
+        <span>Xiaorui Liu<sup>1†</sup></span>
+      </div>
+      <div class="affil"><sup>1</sup>North Carolina State University &nbsp;·&nbsp; <sup>2</sup>Vanderbilt University &nbsp;·&nbsp; *Equal contribution &nbsp;·&nbsp; †Corresponding author</div>
+    </div>
+    <div class="btns">
+      <a class="btn primary" href="https://arxiv.org/abs/2311.14934">Paper (arXiv)</a>
+      <a class="btn" href="https://github.com/chris-hzc/RUNG">Code</a>
+      <a class="btn" href="#layer">Interactive demo</a>
+      <a class="btn" href="#cite">BibTeX</a>
+    </div>
+
+    <div class="tldr">
+      <div class="prose">
+        <p class="lead">Under adaptive attacks, the strongest robust GNNs (SoftMedian, TWIRLS, ElasticGNN) all behave like one model: <strong>ℓ<sub>1</sub> graph smoothing</strong>. ℓ<sub>1</sub> resists a few bad edges, but its estimate is biased, and every adversarial edge adds to the bias.</p>
+        <p>RUNG swaps the ℓ<sub>1</sub> penalty for an unbiased one (MCP) and solves the problem with a stepsize-free Quasi-Newton IRLS. Unrolled, each solver step is a GNN layer that reweights edges and cuts the ones connecting nodes with very different features. The demos below run that mechanism live in your browser.</p>
+      </div>
+      <div class="headline" aria-label="Accuracy under 200% local attack on Cora ML">
+        <div class="eyebrow">Cora ML · adaptive local attack · budget 200% of node degree</div>
+        <div class="hbars" id="hbars"></div>
+        <div class="note">Node classification accuracy (%) on attacked target nodes, Table 1 of the paper. The dashed bar is the MLP, which ignores the graph.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter" id="problem">
+    <div class="chapter-head">
+      <div class="eyebrow">The problem</div>
+      <h2>Robust GNNs still fall below an MLP</h2>
+    </div>
+    <div class="two">
+      <div class="prose">
+        <p>We evaluated representative defenses under <em>adaptive</em> attacks, which target the victim model itself instead of a surrogate. Most defenses are barely more robust than an undefended GCN.</p>
+        <p>Three models stand out (blue curves): SoftMedian, TWIRLS and ElasticGNN. Their architectures look unrelated, yet their robustness curves nearly coincide. They also share the same failure: once the attacker can add more edges, they drop below the MLP, which never looks at the graph.</p>
+        <p>The reason is that all three approximately solve the same problem: graph signal smoothing with an ℓ<sub>1</sub>-type penalty on edge differences.</p>
+      </div>
+      <figure class="figure" style="margin:0">
+        <img src="static/robustness_analysis.png" alt="Accuracy versus attack budget on Cora and Citeseer for MLP, GCN, GNNGuard, SoftMedian, GRAND, TWIRLS, RGCN and ElasticGNN. The l1-based models (blue) are most robust but fall below the MLP at large budgets.">
+        <figcaption>Figure 1. Accuracy under adaptive local attacks. The budget is the number of perturbed edges relative to the target node's degree.</figcaption>
+      </figure>
+    </div>
+    <div class="scroll">
+      <table class="uv">
+        <thead><tr><th>Model</th><th>What it computes</th><th>Equivalent smoothing penalty</th></tr></thead>
+        <tbody>
+          <tr><td>SoftMedian</td><td>Soft dimension-wise median of the neighbors</td><td>∑<sub>j</sub> ‖f<sub>i</sub> − f<sub>j</sub>‖<sub>1</sub></td></tr>
+          <tr><td>TWIRLS</td><td>IRLS on a robust smoothing objective</td><td>∑<sub>(i,j)</sub> ‖f̃<sub>i</sub> − f̃<sub>j</sub>‖<sub>2</sub></td></tr>
+          <tr><td>ElasticGNN</td><td>Proximal message passing (PAPC)</td><td>∑<sub>(i,j)</sub> ‖f<sub>i</sub>/√d<sub>i</sub> − f<sub>j</sub>/√d<sub>j</sub>‖<sub>p</sub>, p ∈ {1, 2}</td></tr>
+          <tr><td>GCN / APPNP</td><td>Weighted neighbor average</td><td>∑<sub>(i,j)</sub> ‖f<sub>i</sub>/√d<sub>i</sub> − f<sub>j</sub>/√d<sub>j</sub>‖<sub>2</sub><sup>2</sup> (not robust)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="chapter" id="bias">
+    <div class="chapter-head">
+      <div class="eyebrow">Why ℓ<sub>1</sub> breaks</div>
+      <h2>Every outlier pulls a little</h2>
+      <div class="prose"><p>Message passing estimates a node's feature from its neighbors, which is a mean estimation problem. Adversarial edges add outliers to that sample. Drag the outlier ratio and watch three estimators.</p></div>
+    </div>
+
+    <div class="demo" aria-label="Demo 1: robust mean estimation">
+      <div class="plot">
+        <div class="demo-tag"><b>Demo 1</b><h3>Mean estimation with outliers</h3></div>
+        <canvas id="cv1" aria-label="Scatter plot of clean samples near the origin and outliers near (8, 8), with the three estimates marked"></canvas>
+        <div class="legend">
+          <span><i style="background:var(--muted);opacity:.5"></i>Clean sample 𝒩(0, I)</span>
+          <span><i style="background:var(--atk);opacity:.6"></i>Outlier</span>
+          <span><i class="sq" style="background:var(--ink)"></i>True mean</span>
+          <span><i style="background:var(--l2)"></i>‖·‖₂² (mean)</span>
+          <span><i style="background:var(--l1)"></i>‖·‖₂ (ℓ₁, median)</span>
+          <span><i style="background:var(--rung)"></i>MCP (RUGE)</span>
+        </div>
+      </div>
+      <div class="side">
+        <div class="ctl">
+          <label for="ratio">Outlier ratio <output id="ratioOut" for="ratio">30%</output></label>
+          <input id="ratio" type="range" min="0" max="48" step="1" value="30">
+        </div>
+        <div class="ctl">
+          <label for="gamma1">MCP threshold γ <output id="gamma1Out" for="gamma1">3.0</output></label>
+          <input id="gamma1" type="range" min="1" max="8" step="0.25" value="3">
+        </div>
+        <div class="row">
+          <button class="sbtn" id="resample" type="button">Resample</button>
+          <label class="small" style="display:flex;gap:6px;align-items:center"><input id="showPath" type="checkbox" checked> Show IRLS path</label>
+        </div>
+        <div class="ctl">
+          <div class="lab">Distance to the true mean</div>
+          <div id="errs" style="display:grid;gap:8px"></div>
+        </div>
+        <p class="small">The mean moves linearly with the outlier ratio. The ℓ<sub>1</sub> median resists for a while and then drifts, because ℓ<sub>1</sub> shrinks every difference by a constant. MCP stops counting a point once it is farther than γ, so its estimate stays put until the outliers are almost the majority.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter" id="penalty">
+    <div class="chapter-head">
+      <div class="eyebrow">The fix</div>
+      <h2>A penalty that stops growing</h2>
+    </div>
+    <div class="two">
+      <div class="prose">
+        <p>RUGE, the Robust and Unbiased Graph signal Estimator, keeps the smoothing objective and replaces the edge penalty with the Minimax Concave Penalty ρ<sub>γ</sub>:</p>
+        <div class="eq"><span class="lbl">Eq. 3–4 · RUGE</span><div class="tex" data-tex="\min_{\mathbf F}\ \sum_{(i,j)\in\mathcal E}\rho_\gamma\!\left(\left\|\tfrac{\mathbf f_i}{\sqrt{d_i}}-\tfrac{\mathbf f_j}{\sqrt{d_j}}\right\|_2\right)+\lambda\sum_{i\in\mathcal V}\|\mathbf f_i-\mathbf f_i^{(0)}\|_2^2"></div><div class="tex" data-tex="\rho_\gamma(y)=\begin{cases}y-\dfrac{y^2}{2\gamma}, & y<\gamma\\[4pt]\dfrac{\gamma}{2}, & y\ge\gamma\end{cases}"></div></div>
+        <p>For small differences ρ<sub>γ</sub> behaves like ℓ<sub>1</sub>, so normal neighbors are smoothed together. Past γ it is flat: a neighbor that far away adds a constant cost and exerts no pull. That is where the bias goes away.</p>
+        <p>The right plot is what actually enters the GNN. Each IRLS step weights edge (i, j) by W<sub>ij</sub> = dρ/dy², which is exactly zero for y ≥ γ.</p>
+      </div>
+      <div class="demo" style="grid-template-columns:1fr">
+        <div class="plot" style="border-right:0;border-bottom:1px solid var(--line)">
+          <div class="demo-tag"><b>Demo 2</b><h3>Penalty and edge weight</h3></div>
+          <div class="plots" style="margin-top:10px">
+            <div><div class="t">ρ(y): penalty on an edge difference</div><svg id="svgRho" viewBox="0 0 250 210" role="img" aria-label="Penalty functions"></svg></div>
+            <div><div class="t">W(y) = dρ/dy²: edge weight in the layer</div><svg id="svgW" viewBox="0 0 250 210" role="img" aria-label="Edge weight functions"></svg></div>
+          </div>
+          <div class="legend">
+            <span><i class="line" style="border-color:var(--l2)"></i>ℓ₂ (GCN / APPNP)</span>
+            <span><i class="line" style="border-color:var(--l1)"></i>ℓ₁ (SoftMedian / TWIRLS / ElasticGNN)</span>
+            <span><i class="line" style="border-color:var(--rung)"></i>MCP (RUNG)</span>
+          </div>
+        </div>
+        <div class="side">
+          <div class="ctl">
+            <label for="gamma2">Threshold γ <output id="gamma2Out" for="gamma2">2.0</output></label>
+            <input id="gamma2" type="range" min="0.5" max="3" step="0.05" value="2">
+          </div>
+          <p class="small">As γ → ∞, MCP becomes ℓ<sub>1</sub>. As γ → 0, it approaches ℓ<sub>0</sub> and prunes almost every edge.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter" id="layer">
+    <div class="chapter-head">
+      <div class="eyebrow">How RUNG works</div>
+      <h2>One solver step, one GNN layer</h2>
+      <div class="prose">
+        <p>RUGE is non-smooth and non-convex. We solve it with Quasi-Newton IRLS, which approximates the Hessian by a diagonal matrix. That makes the update stepsize-free and guarantees the objective decreases every step (Theorem 2). Unrolling K steps gives K layers on top of an MLP:</p>
+      </div>
+      <div class="eq"><span class="lbl">Eq. 8 · RUNG layer</span><div class="tex" data-tex="\mathbf F^{(k+1)}=\big(\operatorname{diag}(\mathbf q^{(k)})+\lambda\mathbf I\big)^{-1}\Big(\big(\mathbf W^{(k)}\odot\tilde{\mathbf A}\big)\mathbf F^{(k)}+\lambda\mathbf F^{(0)}\Big),\qquad W^{(k)}_{ij}=\max\!\Big(0,\ \tfrac{1}{2y^{(k)}_{ij}}-\tfrac{1}{2\gamma}\Big),\quad y^{(k)}_{ij}=\Big\|\tfrac{\mathbf f^{(k)}_i}{\sqrt{d_i}}-\tfrac{\mathbf f^{(k)}_j}{\sqrt{d_j}}\Big\|_2"></div></div>
+      <div class="prose"><p>Below, a two-class graph lives in a 2-D feature space: each dot is a node placed at its current feature f<sub>i</sub><sup>(k)</sup>, and the class is decided by which side of the dashed line it falls on. The attacker wires the eight ringed <strong>target</strong> nodes of class A to class-B nodes. Step through the layers and compare the three penalties.</p></div>
+    </div>
+
+    <div class="demo" aria-label="Demo 3: RUNG layer by layer">
+      <div class="plot">
+        <div class="demo-tag"><b>Demo 3</b><h3>Aggregation under attack, layer by layer</h3></div>
+        <canvas id="cv3" aria-label="Nodes plotted at their features, with clean and adversarial edges; edge opacity shows the learned weight"></canvas>
+        <div class="legend">
+          <span><i style="background:var(--ca)"></i>Class A</span>
+          <span><i style="background:var(--cb)"></i>Class B</span>
+          <span><i style="background:transparent;border:2px solid var(--ink)"></i>Target (correct)</span>
+          <span><i style="background:transparent;border:2px solid var(--atk)"></i>Target (misclassified)</span>
+          <span><i class="line" style="border-color:var(--muted)"></i>Clean edge</span>
+          <span><i class="line" style="border-color:var(--atk)"></i>Adversarial edge</span>
+          <span><i class="dash" style="border-color:var(--muted)"></i>Pruned (W = 0)</span>
+        </div>
+        <p class="small" style="margin-top:8px">Edge opacity shows its weight W<sub>ij</sub>. Thin trails show how each target's feature moved through the layers.</p>
+      </div>
+      <div class="side">
+        <div class="ctl">
+          <div class="lab">Aggregation penalty</div>
+          <div class="seg" id="segKind" role="group" aria-label="Aggregation penalty">
+            <button type="button" data-v="l2">ℓ₂ · APPNP</button>
+            <button type="button" data-v="l1">ℓ₁</button>
+            <button type="button" data-v="mcp">MCP · RUNG</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="lab">Attack budget <span class="val">% of target degree</span></div>
+          <div class="seg" id="segBudget" role="group" aria-label="Attack budget">
+            <button type="button" data-v="0">0</button>
+            <button type="button" data-v="0.5">50</button>
+            <button type="button" data-v="1">100</button>
+            <button type="button" data-v="1.5">150</button>
+            <button type="button" data-v="2">200</button>
+          </div>
+        </div>
+        <div class="ctl" id="gammaCtl">
+          <label for="gamma3">MCP threshold γ <output id="gamma3Out" for="gamma3">0.70</output></label>
+          <input id="gamma3" type="range" min="0.2" max="3" step="0.05" value="0.7">
+        </div>
+        <div class="ctl">
+          <label for="layer">Layer k <output id="layerOut" for="layer">10 / 10</output></label>
+          <input id="layer" type="range" min="0" max="10" step="1" value="10">
+          <div class="row"><button class="sbtn" id="play" type="button">▶ Play layers</button></div>
+        </div>
+        <div class="stats" id="stats"></div>
+      </div>
+    </div>
+
+    <div class="demo summary" style="grid-template-columns:minmax(0,1.65fr) minmax(0,1fr)">
+      <div class="plot">
+        <div class="demo-tag"><b>Demo 3b</b><h3>Target accuracy vs. budget, 30 random graphs</h3></div>
+        <svg id="svgSum" viewBox="0 0 560 260" role="img" aria-label="Target accuracy versus attack budget for l2, l1 and RUNG"></svg>
+        <div class="legend">
+          <span><i class="line" style="border-color:var(--l2)"></i>ℓ₂ · APPNP</span>
+          <span><i class="line" style="border-color:var(--l1)"></i>ℓ₁</span>
+          <span><i class="line" style="border-color:var(--rung)"></i>MCP · RUNG (current γ)</span>
+          <span><i class="dash" style="border-color:var(--muted)"></i>MLP (no graph)</span>
+        </div>
+      </div>
+      <div class="side">
+        <p class="small">The same toy setup over 30 random graphs, after 10 layers. Without an attack, all three graph models beat the MLP because neighbors correct noisy features. As the budget grows, ℓ<sub>2</sub> is dragged along steadily, and ℓ<sub>1</sub> collapses once adversarial neighbors outnumber clean ones. RUNG keeps the targets on their side.</p>
+        <p class="small">Try a very small γ: RUNG then prunes clean edges too and falls back toward the MLP. A very large γ turns it into ℓ<sub>1</sub>. This is the trade-off studied in Appendix G of the paper.</p>
+        <p class="small"><strong>About this toy.</strong> 60 nodes, 2-D features, 10 RUNG layers with λ̂ = 0.9, and a fixed attacker that links each target to the most extreme class-B nodes. It shows the mechanism only. The paper's numbers use adaptive PGD attacks on real datasets.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter" id="results">
+    <div class="chapter-head">
+      <div class="eyebrow">Results</div>
+      <h2>Robust at every budget, with clean accuracy intact</h2>
+      <div class="prose"><p>Adaptive global PGD attack on Cora ML. Accuracy (%) averaged over 5 splits; budget = % of all edges. The paper also covers Citeseer, Ogbn-Arxiv, transfer, poisoning and graph injection attacks.</p></div>
+    </div>
+    <div class="scroll">
+      <table class="res">
+        <thead><tr><th>Model</th><th>Clean</th><th>5%</th><th>10%</th><th>20%</th><th>30%</th><th>40%</th></tr></thead>
+        <tbody>
+          <tr><td>MLP</td><td>65.0 ± 1.0</td><td>65.0 ± 1.0</td><td>65.0 ± 1.0</td><td>65.0 ± 1.0</td><td>65.0 ± 1.0</td><td>65.0 ± 1.0</td></tr>
+          <tr><td>GCN</td><td>85.0 ± 0.4</td><td>75.3 ± 0.5</td><td>69.6 ± 0.5</td><td>60.9 ± 0.7</td><td>54.2 ± 0.6</td><td>48.4 ± 0.5</td></tr>
+          <tr><td>APPNP</td><td><b>86.3 ± 0.4</b></td><td>75.8 ± 0.5</td><td>69.7 ± 0.7</td><td>60.3 ± 0.9</td><td>53.8 ± 1.2</td><td>49.0 ± 1.6</td></tr>
+          <tr class="sep"><td>GNNGuard</td><td>83.1 ± 0.7</td><td>74.6 ± 0.7</td><td>70.2 ± 1.0</td><td>63.1 ± 1.1</td><td>57.5 ± 1.6</td><td>51.0 ± 1.2</td></tr>
+          <tr><td>SoftMedian</td><td>85.0 ± 0.7</td><td>78.6 ± 0.3</td><td>75.5 ± 0.9</td><td>69.5 ± 0.5</td><td>62.8 ± 0.8</td><td>58.1 ± 0.7</td></tr>
+          <tr><td>TWIRLS</td><td>84.2 ± 0.6</td><td>77.3 ± 0.8</td><td>72.9 ± 0.3</td><td>66.9 ± 0.2</td><td>62.4 ± 0.6</td><td>58.7 ± 1.1</td></tr>
+          <tr><td>TWIRLS-T</td><td>82.8 ± 0.5</td><td>76.8 ± 0.6</td><td>73.2 ± 0.4</td><td>67.7 ± 0.4</td><td>63.8 ± 0.2</td><td>60.8 ± 0.3</td></tr>
+          <tr class="sep"><td>RUNG-ℓ₁ (ours)</td><td>85.8 ± 0.5</td><td>78.4 ± 0.4</td><td>74.3 ± 0.3</td><td>68.1 ± 0.6</td><td>63.5 ± 0.7</td><td>59.8 ± 0.8</td></tr>
+          <tr class="ours"><td>RUNG (ours)</td><td>84.6 ± 0.5</td><td><b>78.9 ± 0.4</b></td><td><b>75.7 ± 0.2</b></td><td><b>71.8 ± 0.4</b></td><td><b>67.8 ± 1.3</b></td><td><b>65.1 ± 1.2</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <figure class="figure" style="margin:0">
+      <img src="static/ablation.png" alt="Three ablation plots: convergence of QN-IRLS versus IRLS; estimation bias versus budget for l2, l1 and RUNG; distribution of feature differences on attacked edges.">
+      <figcaption><strong>Left:</strong> QN-IRLS lowers the objective fastest and never oscillates, while first-order IRLS is either slow or unstable. <strong>Middle:</strong> the estimation bias ∑‖f<sub>i</sub> − f<sub>i</sub><sup>⋆</sup>‖² grows with the budget for ℓ<sub>2</sub> and ℓ<sub>1</sub> and stays near zero for RUNG. <strong>Right:</strong> against RUNG, the attacker can only use edges with small feature differences, which do little damage.</figcaption>
+    </figure>
+  </section>
+
+  <section class="chapter" id="cite">
+    <div class="chapter-head">
+      <div class="eyebrow">Citation</div>
+      <h2>BibTeX</h2>
+    </div>
+    <div class="bib">
+      <button class="sbtn" id="copyBib" type="button">Copy</button>
+<pre id="bibText">@inproceedings{hou2024robust,
+  title     = {Robust Graph Neural Networks via Unbiased Aggregation},
+  author    = {Hou, Zhichao and Feng, Ruiqi and Derr, Tyler and Liu, Xiaorui},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2024}
+}</pre>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap" style="display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between">
+    <span>RUNG · NeurIPS 2024 · <a href="https://github.com/chris-hzc/RUNG">github.com/chris-hzc/RUNG</a></span>
+    <span>Contact: <span class="mono">zhou4@ncsu.edu</span></span>
+  </div>
+</footer>
+
+<script>
+/* ===== math core ===== */
+function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
+function gauss(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+// W = d rho(y) / d y^2
+function weight(kind,y,gamma){y=Math.max(y,1e-3);
+  if(kind==='l2')return 1;
+  if(kind==='l1')return Math.min(1/(2*y),1e3);
+  return Math.max(0,1/(2*y)-1/(2*gamma));}
+function rho(kind,y,gamma){if(kind==='l2')return y*y;if(kind==='l1')return y;return y<gamma?y-y*y/(2*gamma):gamma/2;}
+const NPER=30;
+function makeGraph(seed){const r=rng(seed);const n=2*NPER;const y=[],F0=[];
+  for(let i=0;i<n;i++){const c=i<NPER?0:1;y.push(c);F0.push([(c?1.5:-1.5)+gauss(r),gauss(r)]);}
+  const A=Array.from({length:n},()=>new Uint8Array(n));const add=(i,j)=>{if(i!==j){A[i][j]=1;A[j][i]=1;}};
+  for(let i=0;i<n;i++){for(let k=0;k<3;k++){const base=y[i]?NPER:0;add(i,base+Math.floor(r()*NPER));}
+    if(r()<0.12)add(i,(y[i]?0:NPER)+Math.floor(r()*NPER));}
+  const targets=[];while(targets.length<8){const t=Math.floor(r()*NPER);if(!targets.includes(t))targets.push(t);}
+  const order={};
+  for(const t of targets){const c=[];for(let j=NPER;j<n;j++)if(!A[t][j])c.push(j);
+    for(let k=c.length-1;k>0;k--){const m=Math.floor(r()*(k+1));[c[k],c[m]]=[c[m],c[k]];}
+    c.sort((a,b)=>F0[b][0]-F0[a][0]); // attacker: most extreme class-B nodes first
+    order[t]=c;}
+  return{n,y,F0,A,targets,order};}
+function attack(G,budget){const A=G.A.map(row=>Uint8Array.from(row));const adv=[];
+  for(const t of G.targets){let d=0;for(let j=0;j<G.n;j++)d+=G.A[t][j];const m=Math.round(budget*d);
+    for(let k=0;k<m&&k<G.order[t].length;k++){const j=G.order[t][k];A[t][j]=1;A[j][t]=1;adv.push([t,j]);}}
+  return{A,adv};}
+function edgeWeights(A,F,d,kind,gamma){const n=A.length;const W=Array.from({length:n},()=>new Float64Array(n));
+  for(let i=0;i<n;i++){const si=Math.sqrt(d[i]);for(let j=0;j<n;j++){if(!A[i][j])continue;const sj=Math.sqrt(d[j]);
+    W[i][j]=weight(kind,Math.hypot(F[i][0]/si-F[j][0]/sj,F[i][1]/si-F[j][1]/sj),gamma);}}
+  return W;}
+// RUNG propagation, Eq. 8 (Quasi-Newton IRLS). Returns F^(0..K) and W^(0..K).
+function propagate(A,F0,kind,gamma,lamHat,K){const n=A.length;const lam=1/lamHat-1;
+  const d=new Float64Array(n);for(let i=0;i<n;i++){let s=1;for(let j=0;j<n;j++)s+=A[i][j];d[i]=s;}
+  let F=F0.map(f=>f.slice());const Fs=[F],Ws=[];
+  for(let k=0;k<=K;k++){const W=edgeWeights(A,F,d,kind,gamma);Ws.push(W);if(k===K)break;
+    const N=[];for(let i=0;i<n;i++){let q=0,sx=0,sy=0;
+      for(let j=0;j<n;j++){if(!A[i][j])continue;const w=W[i][j];q+=w/d[i];const at=w/Math.sqrt(d[i]*d[j]);sx+=at*F[j][0];sy+=at*F[j][1];}
+      const Q=q+lam;N.push([(sx+lam*F0[i][0])/Q,(sy+lam*F0[i][1])/Q]);}
+    F=N;Fs.push(F);}
+  return{Fs,Ws};}
+function acc(F,y,idx){let c=0;for(const i of idx)c+=((F[i][0]>0?1:0)===y[i])?1:0;return c/idx.length;}
+function estimators(P,gamma,iters=80){const n=P.length;let mx=0,my=0;for(const p of P){mx+=p[0];my+=p[1];}const mean=[mx/n,my/n];
+  let m=mean.slice();for(let t=0;t<iters;t++){let sw=0,sx=0,sy=0;for(const p of P){const w=1/Math.max(Math.hypot(p[0]-m[0],p[1]-m[1]),1e-6);sw+=w;sx+=w*p[0];sy+=w*p[1];}m=[sx/sw,sy/sw];}
+  const med=m;let u=med.slice();const path=[u];
+  for(let t=0;t<iters;t++){let sw=0,sx=0,sy=0;for(const p of P){const w=Math.max(0,1/Math.max(Math.hypot(p[0]-u[0],p[1]-u[1]),1e-6)-1/gamma);sw+=w;sx+=w*p[0];sy+=w*p[1];}
+    if(sw<=0)break;const nu=[sx/sw,sy/sw];path.push(nu);const done=Math.hypot(nu[0]-u[0],nu[1]-u[1])<1e-6;u=nu;if(done)break;}
+  return{mean,med,mcp:u,path};}
+
+/* ===== page helpers ===== */
+const $=s=>document.querySelector(s);
+function tok(){const cs=getComputedStyle(document.documentElement);const g=n=>cs.getPropertyValue('--'+n).trim();
+  return{ink:g('ink'),muted:g('muted'),line:g('line'),surface:g('surface'),sunk:g('sunk'),l2:g('l2'),l1:g('l1'),rung:g('rung'),atk:g('atk'),ca:g('ca'),cb:g('cb')};}
+function rgba(hex,a){let h=hex.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+function sizeCanvas(cv,aspect){const w=Math.max(200,cv.clientWidth||cv.parentElement.clientWidth);const h=Math.round(w*aspect);const dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return{ctx,w,h};}
+const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const SVGNS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+function seg(id,initial,onChange){const box=$(id);const btns=[...box.querySelectorAll('button')];
+  const set=v=>{btns.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===String(v))));};
+  btns.forEach(b=>b.addEventListener('click',()=>{set(b.dataset.v);onChange(b.dataset.v);}));set(initial);}
+
+/* ===== equations (MathML via KaTeX; plain-text fallback) ===== */
+document.querySelectorAll('.tex').forEach(n=>{const tex=n.dataset.tex;
+  try{if(window.katex){katex.render(tex,n,{displayMode:true,output:'mathml',throwOnError:false});return;}}catch(e){}
+  n.classList.add('tex-fallback');n.textContent=tex;});
+
+/* ===== headline bars (Table 1, 200% column) ===== */
+(function(){const rows=[['MLP',72.6,'ref'],['GCN',0.0],['APPNP',0.7],['GNNGuard',2.0],['SoftMedian',8.7],['TWIRLS',12.0],['RUNG-ℓ₁',14.0],['TWIRLS-T',40.7],['RUNG',69.3,'ours']];
+  const box=$('#hbars');box.innerHTML=rows.map(([n,v,c])=>`<div class="hbar ${c||''}"><span>${n}</span><span class="track"><span class="fill" style="width:${v}%"></span></span><span class="v">${v.toFixed(1)}</span></div>`).join('');})();
+
+/* ===== Demo 1: mean estimation ===== */
+const D1={ratio:0.30,gamma:3,seed:7,showPath:true,bankC:null,bankO:null};
+function bank1(){const r=rng(D1.seed);D1.bankC=[];D1.bankO=[];for(let i=0;i<160;i++)D1.bankC.push([gauss(r),gauss(r)]);for(let i=0;i<160;i++)D1.bankO.push([8+gauss(r)*0.7,8+gauss(r)*0.7]);}
+function draw1(){const cv=$('#cv1');const{ctx,w,h}=sizeCanvas(cv,0.78);const T=tok();
+  const X0=-5,X1=12.5,Y0=-4.5,Y1=11;const pad=34;
+  const sx=x=>pad+(x-X0)/(X1-X0)*(w-pad-10),sy=y=>h-pad-(y-Y0)/(Y1-Y0)*(h-pad-10);
+  ctx.clearRect(0,0,w,h);
+  // grid + axes
+  ctx.font='11px "JetBrains Mono", monospace';ctx.fillStyle=T.muted;ctx.strokeStyle=T.line;ctx.lineWidth=1;
+  for(let v=-4;v<=12;v+=2){const x=sx(v);if(v>=X0&&v<=X1){ctx.beginPath();ctx.moveTo(x,sy(Y0));ctx.lineTo(x,sy(Y1));ctx.stroke();ctx.textAlign='center';ctx.fillText(v,x,h-pad+16);}
+    const y=sy(v);if(v>=Y0&&v<=Y1){ctx.beginPath();ctx.moveTo(sx(X0),y);ctx.lineTo(sx(X1),y);ctx.stroke();ctx.textAlign='right';ctx.fillText(v,pad-6,y+4);}}
+  const N=160,no=Math.round(N*D1.ratio);const P=D1.bankC.slice(0,N-no).concat(D1.bankO.slice(0,no));
+  for(const p of D1.bankC.slice(0,N-no)){ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),3.2,0,7);ctx.fillStyle=rgba(T.muted,0.38);ctx.fill();}
+  for(const p of D1.bankO.slice(0,no)){ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),3.2,0,7);ctx.fillStyle=rgba(T.atk,0.45);ctx.fill();}
+  const E=estimators(P,D1.gamma);
+  if(D1.showPath&&E.path.length>1){ctx.strokeStyle=T.rung;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.beginPath();E.path.forEach((p,i)=>i?ctx.lineTo(sx(p[0]),sy(p[1])):ctx.moveTo(sx(p[0]),sy(p[1])));ctx.stroke();ctx.setLineDash([]);
+    for(const p of E.path){ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),2,0,7);ctx.fillStyle=T.rung;ctx.fill();}}
+  // gamma circle around MCP estimate
+  ctx.beginPath();ctx.ellipse(sx(E.mcp[0]),sy(E.mcp[1]),Math.abs(sx(D1.gamma)-sx(0)),Math.abs(sy(D1.gamma)-sy(0)),0,0,7);ctx.strokeStyle=rgba(T.rung,0.45);ctx.setLineDash([2,4]);ctx.lineWidth=1.2;ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=T.rung;ctx.font='12px "JetBrains Mono", monospace';ctx.textAlign='left';ctx.fillText('γ',sx(E.mcp[0]+D1.gamma*0.72)+3,sy(E.mcp[1]+D1.gamma*0.72)-3);
+  // true mean
+  const tx=sx(0),ty=sy(0);ctx.fillStyle=T.ink;ctx.fillRect(tx-5,ty-5,10,10);ctx.strokeStyle=T.surface;ctx.lineWidth=1.5;ctx.strokeRect(tx-5,ty-5,10,10);
+  const cross=(p,c)=>{const x=sx(p[0]),y=sy(p[1]),s=8;ctx.lineCap='round';ctx.strokeStyle=T.surface;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(x-s,y-s);ctx.lineTo(x+s,y+s);ctx.moveTo(x+s,y-s);ctx.lineTo(x-s,y+s);ctx.stroke();ctx.strokeStyle=c;ctx.lineWidth=4;ctx.stroke();};
+  cross(E.mean,T.l2);cross(E.med,T.l1);cross(E.mcp,T.rung);
+  ctx.fillStyle=T.muted;ctx.font='12px "Schibsted Grotesk", sans-serif';ctx.textAlign='right';ctx.fillText(`${Math.round(D1.ratio*100)}% outliers`,w-14,sy(Y0)-10);
+  const errs=[['Mean',Math.hypot(...E.mean),T.l2],['ℓ₁ median',Math.hypot(...E.med),T.l1],['MCP',Math.hypot(...E.mcp),T.rung]];
+  $('#errs').innerHTML=errs.map(([n,v,c])=>`<div class="err"><span>${n}</span><span class="track"><span style="width:${Math.min(100,v/6*100)}%;background:${c}"></span></span><span class="n">${v.toFixed(2)}</span></div>`).join('');}
+$('#ratio').addEventListener('input',e=>{D1.ratio=e.target.value/100;$('#ratioOut').textContent=e.target.value+'%';draw1();});
+$('#gamma1').addEventListener('input',e=>{D1.gamma=+e.target.value;$('#gamma1Out').textContent=(+e.target.value).toFixed(2).replace(/0$/,'');draw1();});
+$('#resample').addEventListener('click',()=>{D1.seed=(D1.seed*16807+11)%2147483647;bank1();draw1();});
+$('#showPath').addEventListener('change',e=>{D1.showPath=e.target.checked;draw1();});
+
+/* ===== Demo 2: penalty curves ===== */
+function draw2(){const g=+$('#gamma2').value;const T=tok();
+  for(const [id,fn,ylab] of [['#svgRho',(k,y)=>rho(k,y,g),'ρ(y)'],['#svgW',(k,y)=>k==='l2'?1:weight(k,y,g),'W']]){
+    const svg=$(id);svg.innerHTML='';const L=26,R=8,Tp=8,B=34,W=250,H=210;const pw=W-L-R,ph=H-Tp-B;
+    const sx=x=>L+x/3*pw,sy=y=>Tp+ph-y/3*ph;
+    const defs=el('defs',{},svg);const cp=el('clipPath',{id:id.slice(1)+'clip'},defs);el('rect',{x:L,y:Tp,width:pw,height:ph},cp);
+    for(let v=0;v<=3;v++){el('line',{x1:sx(v),x2:sx(v),y1:Tp,y2:Tp+ph,stroke:T.line,'stroke-width':1},svg);el('line',{x1:L,x2:L+pw,y1:sy(v),y2:sy(v),stroke:T.line,'stroke-width':1},svg);
+      const tx=el('text',{x:sx(v),y:H-B+16,'text-anchor':'middle','font-size':11,'font-family':'JetBrains Mono, monospace',fill:T.muted},svg);tx.textContent=v;
+      const ty=el('text',{x:L-8,y:sy(v)+4,'text-anchor':'end','font-size':11,'font-family':'JetBrains Mono, monospace',fill:T.muted},svg);ty.textContent=v;}
+    const xl=el('text',{x:L+pw/2,y:H-4,'text-anchor':'middle','font-size':11,'font-family':'Literata, Georgia, serif','font-style':'italic',fill:T.muted},svg);xl.textContent='y = ‖fᵢ/√dᵢ − fⱼ/√dⱼ‖';
+    if(g<=3){el('line',{x1:sx(g),x2:sx(g),y1:Tp,y2:Tp+ph,stroke:T.muted,'stroke-dasharray':'3 4','stroke-width':1.2},svg);
+      const gl=el('text',{x:sx(g)+4,y:Tp+12,'font-size':12,'font-family':'JetBrains Mono, monospace',fill:T.muted},svg);gl.textContent='γ';}
+    for(const [k,c] of [['l2',T.l2],['l1',T.l1],['mcp',T.rung]]){let d='';for(let i=0;i<=240;i++){const y=0.004+i/240*2.996;const v=Math.min(fn(k,y),50);d+=(i?'L':'M')+sx(y).toFixed(1)+','+sy(v).toFixed(1);}
+      el('path',{d,fill:'none',stroke:c,'stroke-width':k==='mcp'?3.2:2.2,'clip-path':`url(${id}clip)`,'stroke-linejoin':'round'},svg);}
+    el('rect',{x:L,y:Tp,width:pw,height:ph,fill:'none',stroke:T.muted,'stroke-width':1},svg);}
+}
+$('#gamma2').addEventListener('input',e=>{$('#gamma2Out').textContent=(+e.target.value).toFixed(2);draw2();});
+
+/* ===== Demo 3: RUNG layers ===== */
+const K=10,LAMHAT=0.9,DEMO_SEED=5;
+const G3=makeGraph(DEMO_SEED);
+const D3={kind:'mcp',budget:2,gamma:0.7,layer:10,t:10,run:null,clean:null,adv:null,A:null,playing:false};
+function run3(){const{A,adv}=attack(G3,D3.budget);D3.A=A;D3.adv=adv;D3.advSet=new Set(adv.map(([a,b])=>a<b?a+','+b:b+','+a));
+  D3.run=propagate(A,G3.F0,D3.kind,D3.gamma,LAMHAT,K);D3.clean=propagate(G3.A,G3.F0,D3.kind,D3.gamma,LAMHAT,K);}
+function posAt(t){const k0=Math.floor(t),k1=Math.min(K,k0+1),a=t-k0;const F0=D3.run.Fs[k0],F1=D3.run.Fs[k1];return F0.map((p,i)=>[p[0]*(1-a)+F1[i][0]*a,p[1]*(1-a)+F1[i][1]*a]);}
+function draw3(){const cv=$('#cv3');const{ctx,w,h}=sizeCanvas(cv,0.72);const T=tok();
+  // fit the view to every layer of the current run; keep the decision boundary x = 0 centred
+  let mx=0,y0=Infinity,y1=-Infinity;for(const F of D3.run.Fs)for(const p of F){mx=Math.max(mx,Math.abs(p[0]));y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);}
+  mx*=1.12;const yc=(y0+y1)/2;const half=Math.max((y1-y0)/2*1.15,mx*0.72*0.5);
+  const X0=-mx,X1=mx,Y0=yc-Math.max(half,mx*0.72),Y1=yc+Math.max(half,mx*0.72);
+  const scale=Math.min(w/(X1-X0),h/(Y1-Y0));const ox=w/2,oy=h/2;
+  const sx=x=>ox+x*scale,sy=y=>oy-(y-yc)*scale;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle=rgba(T.ca,0.07);ctx.fillRect(0,0,sx(0),h);ctx.fillStyle=rgba(T.cb,0.07);ctx.fillRect(sx(0),0,w-sx(0),h);
+  ctx.strokeStyle=T.muted;ctx.setLineDash([5,5]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx(0),0);ctx.lineTo(sx(0),h);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='600 12px "Schibsted Grotesk", sans-serif';ctx.fillStyle=T.ca;ctx.textAlign='left';ctx.fillText('predicted A',10,18);ctx.fillStyle=T.cb;ctx.textAlign='right';ctx.fillText('predicted B',w-10,18);
+  const t=D3.t,k=Math.round(t);const P=posAt(t);const W=D3.run.Ws[Math.min(K,Math.floor(t))];const A=D3.A,n=A.length;
+  const pos=[];for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(A[i][j]&&W[i][j]>0)pos.push(W[i][j]);pos.sort((a,b)=>a-b);const med=pos.length?pos[Math.floor(pos.length/2)]:1;
+  // edges: clean first, adversarial on top
+  for(const passAdv of [false,true]){for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){if(!A[i][j])continue;const isAdv=D3.advSet.has(i+','+j);if(isAdv!==passAdv)continue;
+    const w=W[i][j];const col=isAdv?T.atk:T.muted;ctx.beginPath();ctx.moveTo(sx(P[i][0]),sy(P[i][1]));ctx.lineTo(sx(P[j][0]),sy(P[j][1]));
+    if(w===0){ctx.setLineDash([3,4]);ctx.strokeStyle=rgba(col,0.35);ctx.lineWidth=0.9;}
+    else{const a=w/(w+med);ctx.setLineDash([]);ctx.strokeStyle=rgba(col,0.12+0.75*a);ctx.lineWidth=0.6+2.2*a;}
+    ctx.stroke();}}
+  ctx.setLineDash([]);
+  // target trails
+  for(const i of G3.targets){ctx.beginPath();for(let s=0;s<=Math.floor(t);s++){const p=D3.run.Fs[s][i];s?ctx.lineTo(sx(p[0]),sy(p[1])):ctx.moveTo(sx(p[0]),sy(p[1]));}ctx.lineTo(sx(P[i][0]),sy(P[i][1]));ctx.strokeStyle=rgba(T.ink,0.45);ctx.lineWidth=1.2;ctx.stroke();}
+  // nodes
+  const tset=new Set(G3.targets);
+  for(let i=0;i<n;i++){const x=sx(P[i][0]),y=sy(P[i][1]);const c=G3.y[i]?T.cb:T.ca;
+    ctx.beginPath();ctx.arc(x,y,tset.has(i)?6:4.2,0,7);ctx.fillStyle=c;ctx.fill();ctx.lineWidth=1.2;ctx.strokeStyle=T.surface;ctx.stroke();
+    if(tset.has(i)){const ok=(P[i][0]>0?1:0)===G3.y[i];ctx.beginPath();ctx.arc(x,y,10,0,7);ctx.lineWidth=2.2;ctx.strokeStyle=ok?T.ink:T.atk;ctx.stroke();}}
+  ctx.font='12px "JetBrains Mono", monospace';ctx.fillStyle=T.muted;ctx.textAlign='left';ctx.fillText(`layer ${t.toFixed(t%1?1:0)} / ${K}`,10,h-10);
+  stats3(P,W,k);}
+function stats3(P,W,k){const T=tok();const n=G3.n,idx=[...Array(n).keys()];
+  const tAcc=acc(P,G3.y,G3.targets),aAcc=acc(P,G3.y,idx);
+  let advPr=0;for(const [a,b] of D3.adv)if(W[a][b]===0)advPr++;
+  let cleanE=0,cleanPr=0;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(G3.A[i][j]){cleanE++;if(W[i][j]===0)cleanPr++;}
+  const Fc=D3.clean.Fs[Math.min(K,k)];let bias=0;for(let i=0;i<n;i++){const p=P[i];bias+=(p[0]-Fc[i][0])**2+(p[1]-Fc[i][1])**2;}
+  const nT=G3.targets.length,okT=Math.round(tAcc*nT);
+  const pill=okT===nT?'<span class="state-pill ok">all safe</span>':okT===0?'<span class="state-pill bad">all fooled</span>':`<span class="state-pill bad">${nT-okT} fooled</span>`;
+  const kindName={l2:'ℓ₂',l1:'ℓ₁',mcp:'RUNG'}[D3.kind];const kc={l2:T.l2,l1:T.l1,mcp:T.rung}[D3.kind];
+  $('#stats').innerHTML=`
+   <div class="stat"><span class="k">Targets classified correctly ${pill}</span><span class="v">${okT} / ${nT}</span><span class="bar2"><span style="width:${tAcc*100}%;background:${kc}"></span></span></div>
+   <div class="stat"><span class="k">All nodes correct</span><span class="v">${(aAcc*100).toFixed(0)}%</span></div>
+   <div class="stat"><span class="k">Adversarial edges pruned (W = 0)</span><span class="v">${D3.adv.length?advPr+' / '+D3.adv.length:'–'}</span></div>
+   <div class="stat"><span class="k">Clean edges pruned</span><span class="v">${cleanPr} / ${cleanE}</span></div>
+   <div class="stat"><span class="k">Bias vs. clean graph ∑‖fᵢ − fᵢ⋆‖²</span><span class="v">${bias.toFixed(1)}</span></div>
+   <p class="small">${kindName} after ${k} layer${k===1?'':'s'}, ${Math.round(D3.budget*100)}% budget.</p>`;}
+function setLayer(t){D3.t=t;D3.layer=Math.round(t);$('#layer').value=D3.layer;$('#layerOut').textContent=`${D3.layer} / ${K}`;draw3();}
+function rerun3(){run3();draw3();}
+seg('#segKind','mcp',v=>{D3.kind=v;$('#gammaCtl').style.opacity=v==='mcp'?1:.45;rerun3();});
+seg('#segBudget','2',v=>{D3.budget=+v;rerun3();drawSum();});
+$('#gamma3').addEventListener('input',e=>{D3.gamma=+e.target.value;$('#gamma3Out').textContent=D3.gamma.toFixed(2);rerun3();scheduleSum();});
+$('#layer').addEventListener('input',e=>{stopPlay();setLayer(+e.target.value);});
+let raf=null;
+function stopPlay(){if(raf)cancelAnimationFrame(raf);raf=null;D3.playing=false;$('#play').textContent='▶ Play layers';}
+$('#play').addEventListener('click',()=>{if(D3.playing){stopPlay();return;}
+  if(reduceMotion){setLayer(K);return;}
+  D3.playing=true;$('#play').textContent='❚❚ Pause';let start=null;const from=D3.t>=K?0:D3.t;
+  const step=ts=>{if(start===null)start=ts;const t=Math.min(K,from+(ts-start)/380);setLayer(t);if(t<K&&D3.playing)raf=requestAnimationFrame(step);else stopPlay();};
+  raf=requestAnimationFrame(step);});
+
+/* ===== Demo 3b: summary over random graphs ===== */
+const BUD=[0,0.2,0.5,1,1.5,2],SEEDS=30;let SUM=null,sumTimer=null;
+const GRAPHS=Array.from({length:SEEDS},(_,s)=>makeGraph(s+1));
+const ATTACKED=GRAPHS.map(G=>BUD.map(b=>attack(G,b).A));
+function computeSum(){const out={l2:[],l1:[],mcp:[],mlp:0};
+  for(const kind of ['l2','l1','mcp']){for(let bi=0;bi<BUD.length;bi++){let s=0;for(let gi=0;gi<SEEDS;gi++){const G=GRAPHS[gi];const{Fs}=propagate(ATTACKED[gi][bi],G.F0,kind,D3.gamma,LAMHAT,K);s+=acc(Fs[K],G.y,G.targets);}out[kind].push(s/SEEDS*100);}}
+  let m=0;for(const G of GRAPHS)m+=acc(G.F0,G.y,G.targets);out.mlp=m/SEEDS*100;SUM=out;}
+function scheduleSum(){clearTimeout(sumTimer);sumTimer=setTimeout(()=>{computeSum();drawSum();},120);}
+function drawSum(){if(!SUM)return;const svg=$('#svgSum');svg.innerHTML='';const T=tok();const W=560,H=260,L=44,R=14,Tp=14,B=36;const pw=W-L-R,ph=H-Tp-B;
+  const sx=b=>L+b/2*pw,sy=v=>Tp+ph-v/100*ph;
+  for(const v of [0,25,50,75,100]){el('line',{x1:L,x2:L+pw,y1:sy(v),y2:sy(v),stroke:T.line},svg);const t=el('text',{x:L-8,y:sy(v)+4,'text-anchor':'end','font-size':11,'font-family':'JetBrains Mono, monospace',fill:T.muted},svg);t.textContent=v;}
+  for(const b of BUD){const t=el('text',{x:sx(b),y:H-B+18,'text-anchor':'middle','font-size':11,'font-family':'JetBrains Mono, monospace',fill:T.muted},svg);t.textContent=Math.round(b*100)+'%';}
+  const xl=el('text',{x:L+pw/2,y:H-2,'text-anchor':'middle','font-size':11,'font-family':'Schibsted Grotesk, sans-serif',fill:T.muted},svg);xl.textContent='attack budget (% of target degree)';
+  const yl=el('text',{x:12,y:Tp+ph/2,'text-anchor':'middle','font-size':11,'font-family':'Schibsted Grotesk, sans-serif',fill:T.muted,transform:`rotate(-90 12 ${Tp+ph/2})`},svg);yl.textContent='target accuracy (%)';
+  el('line',{x1:L,x2:L+pw,y1:sy(SUM.mlp),y2:sy(SUM.mlp),stroke:T.muted,'stroke-dasharray':'5 5','stroke-width':1.5},svg);
+  for(const [k,c] of [['l2',T.l2],['l1',T.l1],['mcp',T.rung]]){const d=SUM[k].map((v,i)=>(i?'L':'M')+sx(BUD[i]).toFixed(1)+','+sy(v).toFixed(1)).join('');
+    el('path',{d,fill:'none',stroke:c,'stroke-width':k==='mcp'?3:2,'stroke-linejoin':'round'},svg);
+    SUM[k].forEach((v,i)=>{const cur=BUD[i]===D3.budget;el('circle',{cx:sx(BUD[i]),cy:sy(v),r:cur?5:3,fill:cur?c:T.surface,stroke:c,'stroke-width':2},svg);});
+    const last=SUM[k][SUM[k].length-1];const t=el('text',{x:sx(2)-8,y:sy(last)+(k==='l1'?-8:-8),'text-anchor':'end','font-size':11,'font-family':'JetBrains Mono, monospace',fill:c,'font-weight':600},svg);t.textContent=last.toFixed(0)+'%';}
+  el('rect',{x:sx(D3.budget)-1,y:Tp,width:2,height:ph,fill:rgba(T.ink,0.12)},svg);}
+
+/* ===== bibtex copy ===== */
+$('#copyBib').addEventListener('click',async()=>{const txt=$('#bibText').textContent;const b=$('#copyBib');
+  try{await navigator.clipboard.writeText(txt);b.textContent='Copied';}catch(e){const r=document.createRange();r.selectNodeContents($('#bibText'));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected, press Ctrl+C';}
+  setTimeout(()=>b.textContent='Copy',1800);});
+
+/* ===== boot + theme/resize ===== */
+function drawAll(){draw1();draw2();draw3();drawSum();}
+bank1();run3();computeSum();drawAll();
+let rt=null;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,80);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+new MutationObserver(drawAll).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawAll);
+</script>
+</body>
+</html>

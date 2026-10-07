@@ -1,9 +1,19 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*.egg-info/
+
+# Experiment outputs
 log/
+.log/
 exp/models/
 exp/result/
-data/
-*.egg-info/
+
+# Large / local files
+data/*
+!data/*.npz
+!data/readme.md
+*.pdf
+
+# OS
 .DS_Store

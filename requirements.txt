@@ -1,20 +1,31 @@
-torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
-torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
+# PyTorch 2.6 with CUDA 12.4 wheels
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.6.0
+torchvision==0.21.0
+
+# Graph learning
 torch-geometric
 torch-scatter
 torch-sparse
+networkx
+
+# Type annotations (torchtyping needs a one-line patch for torch>=2.0:
+#   python scripts/patch_torchtyping.py)
 torchtyping==0.1.4
 typeguard==2.13.3
+
+# Scientific stack
 numpy
 scipy
 scikit-learn
 matplotlib
+numba
+threadpoolctl
 tqdm
 PyYAML
-numba
+
+# Experiment management (used by the attack utilities in gb/)
 munch
 pymongo
 sacred
 seml
-threadpoolctl
-networkx
