@@ -2,25 +2,30 @@
 
 # RUNG: Robust Graph Neural Networks via Unbiased Aggregation
 
-**[Zhichao Hou](mailto:zhou4@ncsu.edu)<sup>1,\*</sup> · Ruiqi Feng<sup>1,\*</sup> · Tyler Derr<sup>2</sup> · [Xiaorui Liu](mailto:xliu96@ncsu.edu)<sup>1,†</sup>**
+**[Zhichao Hou](mailto:zhou4@ncsu.edu)<sup>1</sup> · Ruiqi Feng<sup>1</sup> · Tyler Derr<sup>2</sup> · [Xiaorui Liu](mailto:xliu96@ncsu.edu)<sup>1,†</sup>**
 
 <sup>1</sup>North Carolina State University &nbsp;&nbsp; <sup>2</sup>Vanderbilt University
-<br><sup>\*</sup>Equal contribution &nbsp;&nbsp; <sup>†</sup>Corresponding author
+<br><sup>†</sup>Corresponding author
 
 **NeurIPS 2024**
+
+<a href="https://chris-hzc.github.io/RUNG/"><img src="figures/project_page_button.svg" alt="Project Page: interactive demos" width="420"></a>
 
 [![arXiv](https://img.shields.io/badge/arXiv-2311.14934-b31b1b.svg?logo=arxiv)](https://arxiv.org/abs/2311.14934)
 [![NeurIPS](https://img.shields.io/badge/NeurIPS-2024-4b44ce.svg)](https://arxiv.org/abs/2311.14934)
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.6-EE4C2C.svg?logo=pytorch&logoColor=white)](https://pytorch.org/)
 
-[**📄 Paper**](https://arxiv.org/abs/2311.14934) · [**🚀 Quick Start**](#-quick-start) · [**📊 Results**](#-results) · [**📝 Citation**](#-citation)
+[**🌐 Project Page**](https://chris-hzc.github.io/RUNG/) · [**📄 Paper**](https://arxiv.org/abs/2311.14934) · [**🚀 Quick Start**](#-quick-start) · [**📊 Results**](#-results) · [**📝 Citation**](#-citation)
 
 </div>
 
 ---
 
 > **TL;DR.** Many robust GNNs (SoftMedian, TWIRLS, ElasticGNN) are secretly the same thing: **ℓ<sub>1</sub>-based robust graph smoothing**. That explains why they are more robust than GCN, and also why they **collapse under large attack budgets**: ℓ<sub>1</sub> estimation is *biased*, and every adversarial edge adds to the bias. **RUNG** replaces ℓ<sub>1</sub> with an unbiased MCP penalty and solves it with a stepsize-free **Quasi-Newton IRLS**. The solver unrolls into an interpretable aggregation layer that **prunes suspicious edges** and stays robust even when the attacker perturbs 200% of a node's edges.
+
+> [!TIP]
+> **🌐 [Visit the project page](https://chris-hzc.github.io/RUNG/)** to see how RUNG works in your browser: drag an adversarial neighbor and watch RUNG cut its edge, compare the ℓ<sub>2</sub>, ℓ<sub>1</sub> and MCP estimators, and explore the results by dataset and attack budget.
 
 <p align="center">
   <img src="figures/mean_estimation.png" width="88%">

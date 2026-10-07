@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="76" viewBox="0 0 420 76" role="img" aria-label="Project Page: interactive demos">
+  <title>RUNG Project Page: interactive demos</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="0.55" stop-color="#5b3fe0"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.18" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#c4b5fd" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#c4b5fd" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="pill"><rect x="2" y="2" width="416" height="72" rx="36"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#pill)">
+    <rect x="2" y="2" width="416" height="72" fill="url(#bg)"/>
+    <rect x="2" y="2" width="416" height="72" fill="url(#glow)"/>
+    <!-- faint grid, like the feature-space demos -->
+    <g stroke="#fff" stroke-opacity="0.07" stroke-width="1">
+      <path d="M60 2V74M120 2V74M180 2V74M240 2V74M300 2V74M360 2V74M2 26H418M2 50H418"/>
+    </g>
+    <!-- moving shine -->
+    <rect x="-140" y="2" width="120" height="72" fill="url(#shine)" transform="skewX(-20)">
+      <animate attributeName="x" values="-160;560;560" keyTimes="0;0.45;1" dur="4.5s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  <rect x="2.5" y="2.5" width="415" height="71" rx="35.5" fill="none" stroke="#fff" stroke-opacity="0.35"/>
+
+  <!-- icon: node i with three clean neighbors and one adversarial edge being pruned -->
+  <g transform="translate(40 38)">
+    <circle r="27" fill="#fff" fill-opacity="0.12" stroke="#fff" stroke-opacity="0.3"/>
+    <g stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+      <line x1="0" y1="0" x2="-14" y2="-11"/>
+      <line x1="0" y1="0" x2="-13" y2="12"/>
+      <line x1="0" y1="0" x2="3" y2="-17"/>
+    </g>
+    <line x1="0" y1="0" x2="17" y2="10" stroke="#5eead4" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3 3.5">
+      <animate attributeName="stroke-opacity" values="1;0.15;1" dur="2.2s" repeatCount="indefinite"/>
+    </line>
+    <g fill="#fff">
+      <circle cx="-14" cy="-11" r="3.6"/>
+      <circle cx="-13" cy="12" r="3.6"/>
+      <circle cx="3" cy="-17" r="3.6"/>
+    </g>
+    <circle cx="17" cy="10" r="4.2" fill="#5eead4"/>
+    <circle r="6" fill="#fff"/>
+    <circle r="2.4" fill="#6741d9"/>
+  </g>
+
+  <!-- label -->
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" fill="#fff">
+    <text x="84" y="35" font-size="21" font-weight="800" letter-spacing="2.2">PROJECT PAGE</text>
+    <text x="84" y="55" font-size="12.5" font-weight="500" fill-opacity="0.85" letter-spacing="0.3">Interactive demos in your browser</text>
+  </g>
+
+  <!-- arrow -->
+  <g transform="translate(386 38)">
+    <circle r="17" fill="#fff"/>
+    <path d="M-6 0H6M1 -5.5L6.5 0L1 5.5" fill="none" stroke="#5b3fe0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <animateTransform attributeName="transform" type="translate" values="0 0;3 0;0 0" dur="1.6s" repeatCount="indefinite"/>
+    </path>
+  </g>
+</svg>
